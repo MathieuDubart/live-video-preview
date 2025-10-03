@@ -6,17 +6,29 @@
 //
 
 import SwiftUI
+import AVFoundation
 
 struct ContentView: View {
+    @Environment(PermissionsManager.self) var permissionsManager
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        ZStack {
+            if permissionsManager.cameraUsageIsAllowed() {
+                
+            } else {
+                CameraNotAllowedView();
+            }
         }
-        .padding()
+
+        .onAppear {
+            Task
+            {
+                await permissionsManager.requestCameraPermission()
+            }
+        }
     }
+    
+    
 }
 
 #Preview {
