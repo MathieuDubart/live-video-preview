@@ -16,8 +16,6 @@ final class CameraController {
     private var isConfigured = false
     private let queue = DispatchQueue(label: "camera.session.queue")
     
-    enum CameraError: Error { case noCamera, cannotAddInput }
-    
     private init() {
         self.session = AVCaptureSession()
     }
@@ -69,5 +67,38 @@ final class CameraController {
         queue.async {
             if self.session.isRunning { self.session.stopRunning() }
         }
+    }
+    
+    func discoverAvailableDevices() throws -> AVCaptureDevice.DiscoverySession {
+        let session = AVCaptureDevice.DiscoverySession(
+            deviceTypes: [
+                .builtInWideAngleCamera,
+                .builtInTelephotoCamera,
+                .builtInTrueDepthCamera,
+                .builtInDualCamera
+            ],
+            mediaType: .video,
+            position: .unspecified
+        )
+        
+        return session
+    }
+    
+    func bestDevice(in position: AVCaptureDevice.Position) -> AVCaptureDevice {
+        let devices: Array<AVCaptureDevice>
+
+        do {
+            let session = try discoverAvailableDevices()
+            devices = session.devices
+        }
+        catch {
+            fatalError("Missing capture devices.")
+        }
+        
+        
+        guard !devices.isEmpty else { fatalError("Missing capture devices.")}
+        
+        
+        return devices.first(where: { device in device.position == position })!
     }
 }
