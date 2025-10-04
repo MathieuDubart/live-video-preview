@@ -1,5 +1,5 @@
 //
-//  PermissionsManager.swift
+//  PermissionsController.swift
 //  live-video-preview
 //
 //  Created by Mathieu Dubart on 03/10/2025.
@@ -8,26 +8,24 @@
 import SwiftUI
 import AVFoundation
 
+@MainActor
 @Observable
-class PermissionsManager {
-    @ObservationIgnored
-    @AppStorage("cameraPermissionIsAllowed") private var isCameraPermissionGranted: Bool = false
-   
-    public func requestCameraPermission() async {
-        let status = AVCaptureDevice.authorizationStatus(for: .video)
-        
-        switch status {
-        case .notDetermined:
-            let granted = await AVCaptureDevice.requestAccess(for: .video)
-            self.isCameraPermissionGranted = granted
-        case .authorized:
-            self.isCameraPermissionGranted = true
-        default:
-            self.isCameraPermissionGranted = false
-        }
+final class PermissionsController {
+    var cameraStatus: AVAuthorizationStatus = AVCaptureDevice.authorizationStatus(for: .video)
+    var isCameraAuthorized: Bool { cameraStatus == .authorized }
+    
+    func refreshCameraStatus() {
+        cameraStatus = AVCaptureDevice.authorizationStatus(for: .video)
     }
     
-    public func cameraUsageIsAllowed() -> Bool {
-        return isCameraPermissionGranted
+    func requestCameraPermission() async {
+        let current = AVCaptureDevice.authorizationStatus(for: .video)
+        switch current {
+        case .notDetermined:
+            let granted = await AVCaptureDevice.requestAccess(for: .video)
+            cameraStatus = granted ? .authorized : .denied
+        default:
+            cameraStatus = AVCaptureDevice.authorizationStatus(for: .video)
+        }
     }
 }

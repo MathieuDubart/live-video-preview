@@ -9,12 +9,12 @@ import SwiftUI
 
 @main
 struct live_video_previewApp: App {
-    @State var permissionsManager = PermissionsManager()
+    @State var permissionsController = PermissionsController()
     
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environment(permissionsManager)
+                .environment(permissionsController)
         }
     }
 }

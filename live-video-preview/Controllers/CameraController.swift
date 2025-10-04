@@ -1,5 +1,5 @@
 //
-//  CameraManager.swift
+//  CameraController.swift
 //  live-video-preview
 //
 //  Created by Mathieu Dubart on 04/10/2025.
@@ -9,11 +9,8 @@ import Foundation
 import AVFoundation
 
 @Observable
-class CameraManager {
-    static var shared: CameraManager = {
-        let instance = CameraManager()
-        return instance
-    }()
+final class CameraController {
+    static let shared = CameraController()
     
     let session: AVCaptureSession
     private var isConfigured = false
@@ -25,38 +22,52 @@ class CameraManager {
         self.session = AVCaptureSession()
     }
     
-    func configureSession() throws {
-        self.session.beginConfiguration()
-        self.session.sessionPreset = .high
+    func configureSessionIfNeeded() throws {
+        guard !isConfigured else { return }
+        isConfigured = true
+        
+        session.beginConfiguration()
+        session.sessionPreset = .high
         
         guard let device = AVCaptureDevice.default(.builtInWideAngleCamera,
                                                    for: .video,
                                                    position: .back) else {
+            isConfigured = false
+            session.commitConfiguration()
             throw CameraError.noCamera
         }
         
         let input = try AVCaptureDeviceInput(device: device)
-        guard self.session.canAddInput(input) else { throw CameraError.cannotAddInput }
-        self.session.addInput(input)
+        guard session.canAddInput(input) else {
+            isConfigured = false
+            session.commitConfiguration()
+            throw CameraError.cannotAddInput
+        }
+        session.addInput(input)
         
-        self.session.commitConfiguration()
+        session.commitConfiguration()
+    }
+    
+    func configureOnQueueIfNeeded(completion: @escaping (Error?) -> Void) {
+        queue.async {
+            do {
+                try self.configureSessionIfNeeded()
+                completion(nil)
+            } catch {
+                completion(error)
+            }
+        }
     }
     
     func startSession() {
-        DispatchQueue.global(qos: .userInitiated).async {
+        queue.async {
             if !self.session.isRunning { self.session.startRunning() }
         }
     }
     
     func stopSession() {
-        DispatchQueue.global(qos: .userInitiated).async {
+        queue.async {
             if self.session.isRunning { self.session.stopRunning() }
         }
-    }
-}
-
-extension CameraManager: NSCopying {
-    func copy(with zone: NSZone? = nil) -> Any {
-        return self
     }
 }

@@ -40,6 +40,7 @@ struct CameraPreview: UIViewRepresentable {
     static func dismantleUIView(_ uiView: PreviewView, coordinator: ()) {
         uiView.videoPreviewLayer.session = nil
     }
+    
 }
 
 #Preview {

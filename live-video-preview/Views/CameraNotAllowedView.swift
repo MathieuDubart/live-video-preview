@@ -7,30 +7,30 @@
 
 import SwiftUI
 
+import SwiftUI
+
 struct CameraNotAllowedView: View {
-    var textToDsiaplay: String = "Camera usage hasn't been allowed, please allow it in settings"
+    @Environment(\.openURL) private var openURL
+    var textToDisplay: String = "Camera usage hasn't been allowed, please allow it in Settings."
+    
     var body: some View {
-        VStack {
+        VStack(spacing: 20) {
             Image(systemName: "camera")
-            Spacer()
-                .frame(height:20)
+                .font(.largeTitle)
             
-            Text(textToDsiaplay)
-            Spacer()
-                .frame(height:20)
+            Text(textToDisplay)
+                .multilineTextAlignment(.center)
             
             Button {
-                
-            } label: {
-                HStack {
-                    Text("Allow camera access")
-                    Spacer()
-                        .frame(width: 10)
-                    
-                    Image(systemName: "arrow.2.circlepath.circle")
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    openURL(url)
                 }
+            } label: {
+                Label("Allow camera access", systemImage: "arrow.2.circlepath.circle")
             }
+            .buttonStyle(.borderedProminent)
         }
+        .padding()
     }
 }
 

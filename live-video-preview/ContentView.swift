@@ -9,22 +9,49 @@ import SwiftUI
 import AVFoundation
 
 struct ContentView: View {
-    @Environment(PermissionsManager.self) var permissionsManager
+    @Environment(PermissionsController.self) var permissionsController
+    let cameraController = CameraController.shared
 
     var body: some View {
         ZStack {
-            if permissionsManager.cameraUsageIsAllowed() {
-                
+            if permissionsController.isCameraAuthorized {
+                CameraPreview(session: cameraController.session)
+                    .ignoresSafeArea()
             } else {
-                CameraNotAllowedView();
+                CameraNotAllowedView()
             }
         }
 
-        .onAppear {
-            Task
-            {
-                await permissionsManager.requestCameraPermission()
+        .task {
+            await permissionsController.requestCameraPermission()
+            if permissionsController.isCameraAuthorized {
+                cameraController.configureOnQueueIfNeeded { error in
+                    if let error {
+                        print("Camera config error: \(error)")
+                    } else {
+                        cameraController.startSession()
+                    }
+                }
             }
+        }
+        .onChange(of: permissionsController.isCameraAuthorized, initial: true) { _, newValue in
+            if newValue == true {
+                cameraController.configureOnQueueIfNeeded { error in
+                    if let error {
+                        print("Camera config error: \(error)")
+                    } else {
+                        cameraController.startSession()
+                    }
+                }
+            } else {
+                cameraController.stopSession()
+            }
+        }
+        .onDisappear {
+            cameraController.stopSession()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            permissionsController.refreshCameraStatus()
         }
     }
     
