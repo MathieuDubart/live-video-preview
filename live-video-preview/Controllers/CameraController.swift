@@ -69,6 +69,9 @@ final class CameraController {
         }
     }
     
+    /*
+     * Discovers an array of available devices
+     */
     func discoverAvailableDevices() throws -> AVCaptureDevice.DiscoverySession {
         let session = AVCaptureDevice.DiscoverySession(
             deviceTypes: [
@@ -84,21 +87,106 @@ final class CameraController {
         return session
     }
     
+    /*
+     * Returns the best device
+     */
     func bestDevice(in position: AVCaptureDevice.Position) -> AVCaptureDevice {
-        let devices: Array<AVCaptureDevice>
-
-        do {
-            let session = try discoverAvailableDevices()
-            devices = session.devices
-        }
-        catch {
-            fatalError("Missing capture devices.")
-        }
+        let devices = self.videoDevices()
         
         
         guard !devices.isEmpty else { fatalError("Missing capture devices.")}
-        
-        
         return devices.first(where: { device in device.position == position })!
+    }
+    
+    /*
+     * Return an array of devices available
+     */
+    func videoDevices() -> [AVCaptureDevice] {
+        (try? discoverAvailableDevices().devices) ?? []
+    }
+    
+    
+    func switchTo(position: AVCaptureDevice.Position, completion: @escaping (Error?) -> Void) {
+        queue.async {
+            do {
+                // Choisir un device pour cette position
+                let discovery = try self.discoverAvailableDevices()
+                guard let device = discovery.devices.first(where: { $0.position == position }) else {
+                    throw CameraError.deviceNotFound(position: position)
+                }
+                try self.reconfigureSession(with: device)
+                DispatchQueue.main.async { completion(nil) }
+            } catch {
+                DispatchQueue.main.async { completion(error) }
+            }
+        }
+    }
+    
+    func switchToDevice(withID uniqueID: String, completion: @escaping (Error?) -> Void) {
+        queue.async {
+            do {
+                let discovery = try self.discoverAvailableDevices()
+                guard let device = discovery.devices.first(where: { $0.uniqueID == uniqueID }) else {
+                    throw CameraError.noDevices
+                }
+                try self.reconfigureSession(with: device)
+                DispatchQueue.main.async { completion(nil) }
+            } catch {
+                DispatchQueue.main.async { completion(error) }
+            }
+        }
+    }
+    
+    private func reconfigureSession(with device: AVCaptureDevice) throws {
+        let newInput = try AVCaptureDeviceInput(device: device)
+        
+        session.beginConfiguration()
+        // Retirer uniquement les inputs vidéo existants
+        for input in session.inputs {
+            if let input = input as? AVCaptureDeviceInput,
+               input.device.hasMediaType(.video) {
+                session.removeInput(input)
+            }
+        }
+        guard session.canAddInput(newInput) else {
+            session.commitConfiguration()
+            throw CameraError.cannotAddInput
+        }
+        session.addInput(newInput)
+        session.commitConfiguration()
+    }
+    
+    func switchToDevice(withID uniqueID: String, completion: @escaping (Error?) -> Void) {
+        queue.async {
+            do {
+                let discovery = try self.discoverAvailableDevices()
+                guard let device = discovery.devices.first(where: { $0.uniqueID == uniqueID }) else {
+                    throw CameraError.noDevices
+                }
+                try self.reconfigureSession(with: device)
+                DispatchQueue.main.async { completion(nil) }
+            } catch {
+                DispatchQueue.main.async { completion(error) }
+            }
+        }
+    }
+    
+    private func reconfigureSession(with device: AVCaptureDevice) throws {
+        let newInput = try AVCaptureDeviceInput(device: device)
+        
+        session.beginConfiguration()
+        // Retirer uniquement les inputs vidéo existants
+        for input in session.inputs {
+            if let input = input as? AVCaptureDeviceInput,
+               input.device.hasMediaType(.video) {
+                session.removeInput(input)
+            }
+        }
+        guard session.canAddInput(newInput) else {
+            session.commitConfiguration()
+            throw CameraError.cannotAddInput
+        }
+        session.addInput(newInput)
+        session.commitConfiguration()
     }
 }

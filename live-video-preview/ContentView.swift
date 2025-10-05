@@ -15,8 +15,16 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             if permissionsController.isCameraAuthorized {
+                #if targetEnvironment(simulator)
+                let simulatorHint = "No camera inside simulator environment 😢"
+                #else
+                let simulatorHint = ""
+                #endif
+                
+                Text(simulatorHint)
                 CameraPreview(session: cameraController.session)
                     .ignoresSafeArea()
+                
             } else {
                 CameraNotAllowedView()
             }
