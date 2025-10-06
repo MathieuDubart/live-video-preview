@@ -105,8 +105,11 @@ final class CameraController {
         (try? discoverAvailableDevices().devices) ?? []
     }
     
-    
-    func switchTo(position: AVCaptureDevice.Position, completion: @escaping (Error?) -> Void) {
+
+    /*
+     * Switch between available devices by Position (front or back)
+     */
+    func switchToDevice(withPosition position: AVCaptureDevice.Position, completion: @escaping (Error?) -> Void) {
         queue.async {
             do {
                 // Choisir un device pour cette position
@@ -122,6 +125,9 @@ final class CameraController {
         }
     }
     
+    /*
+     * Switch between available devices by ID
+     */
     func switchToDevice(withID uniqueID: String, completion: @escaping (Error?) -> Void) {
         queue.async {
             do {
@@ -137,40 +143,9 @@ final class CameraController {
         }
     }
     
-    private func reconfigureSession(with device: AVCaptureDevice) throws {
-        let newInput = try AVCaptureDeviceInput(device: device)
-        
-        session.beginConfiguration()
-        // Retirer uniquement les inputs vidéo existants
-        for input in session.inputs {
-            if let input = input as? AVCaptureDeviceInput,
-               input.device.hasMediaType(.video) {
-                session.removeInput(input)
-            }
-        }
-        guard session.canAddInput(newInput) else {
-            session.commitConfiguration()
-            throw CameraError.cannotAddInput
-        }
-        session.addInput(newInput)
-        session.commitConfiguration()
-    }
-    
-    func switchToDevice(withID uniqueID: String, completion: @escaping (Error?) -> Void) {
-        queue.async {
-            do {
-                let discovery = try self.discoverAvailableDevices()
-                guard let device = discovery.devices.first(where: { $0.uniqueID == uniqueID }) else {
-                    throw CameraError.noDevices
-                }
-                try self.reconfigureSession(with: device)
-                DispatchQueue.main.async { completion(nil) }
-            } catch {
-                DispatchQueue.main.async { completion(error) }
-            }
-        }
-    }
-    
+    /*
+     * Reconfigure AVFoundation Session
+     */
     private func reconfigureSession(with device: AVCaptureDevice) throws {
         let newInput = try AVCaptureDeviceInput(device: device)
         
