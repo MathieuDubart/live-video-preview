@@ -25,6 +25,14 @@ struct ContentView: View {
                 CameraPreview(session: cameraController.session)
                     .ignoresSafeArea()
                 
+                Button {
+                    cameraController.switchToDevice(withID: "0") {error in
+                        
+                    }
+                } label : {
+                    Text("Switch device camera")
+                }
+                
             } else {
                 CameraNotAllowedView()
             }
