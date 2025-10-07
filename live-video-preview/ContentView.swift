@@ -12,6 +12,7 @@ struct ContentView: View {
     @Environment(PermissionsController.self) var permissionsController
     let cameraController = CameraController.shared
 
+    @State private var cameraSwitchErrorMessage = ""
     var body: some View {
         ZStack {
             if permissionsController.isCameraAuthorized {
@@ -25,14 +26,53 @@ struct ContentView: View {
                 CameraPreview(session: cameraController.session)
                     .ignoresSafeArea()
                 
-                Button {
-                    cameraController.switchToDevice(withID: "0") {error in
+                VStack {
+                    Spacer()
+                    
+                    HStack {
+                        Button {
+                            cameraController.switchToDevice(withType: .builtInUltraWideCamera) { e in
+                                cameraController.resetDefaultCamera(withError: e)
+                            }
+                        } label: {
+                            Text(".5")
+                        }
+                        .buttonStyle(.glass)
+                        .padding([.all], 15)
+                        .buttonBorderShape(.circle)
+                        
+                        Spacer()
+                            .frame(width: 35)
+                        
+                        Button {
+                            cameraController.switchToDevice(withType: .builtInDualCamera) { e in
+                                cameraController.resetDefaultCamera(withError: e)
+                            }
+                        } label: {
+                            Text("1")
+                        }
+                        .buttonStyle(.glass)
+                        .padding([.all], 15)
+                        .buttonBorderShape(.circle)
+                        
+                        Spacer()
+                            .frame(width: 35)
+                        
+                        Button {
+                            cameraController.switchToDevice(withType: .builtInTelephotoCamera) { e in
+                                cameraController.resetDefaultCamera(withError: e)
+                            }
+                        } label: {
+                            Text("25")
+                        }
+                        .buttonStyle(.glass)
+                        .padding([.all], 15)
+                        .buttonBorderShape(.circle)
                         
                     }
-                } label : {
-                    Text("Switch device camera")
+                    .padding([.bottom], 150)
                 }
-                
+                            
             } else {
                 CameraNotAllowedView()
             }

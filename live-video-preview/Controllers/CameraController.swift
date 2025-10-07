@@ -15,6 +15,7 @@ final class CameraController {
     let session: AVCaptureSession
     private var isConfigured = false
     private let queue = DispatchQueue(label: "camera.session.queue")
+    var error: Error?
     
     private init() {
         self.session = AVCaptureSession()
@@ -75,27 +76,19 @@ final class CameraController {
     func discoverAvailableDevices() throws -> AVCaptureDevice.DiscoverySession {
         let session = AVCaptureDevice.DiscoverySession(
             deviceTypes: [
-                .builtInWideAngleCamera,
+                .builtInTripleCamera,
+                .builtInDualWideCamera,
+                .builtInDualCamera,
                 .builtInTelephotoCamera,
-                .builtInTrueDepthCamera,
-                .builtInDualCamera
+                .builtInUltraWideCamera,
+                .builtInWideAngleCamera,
+                .builtInTrueDepthCamera
             ],
             mediaType: .video,
             position: .unspecified
         )
         
         return session
-    }
-    
-    /*
-     * Returns the best device
-     */
-    func bestDevice(in position: AVCaptureDevice.Position) -> AVCaptureDevice {
-        let devices = self.videoDevices()
-        
-        
-        guard !devices.isEmpty else { fatalError("Missing capture devices.")}
-        return devices.first(where: { device in device.position == position })!
     }
     
     /*
@@ -128,11 +121,12 @@ final class CameraController {
     /*
      * Switch between available devices by ID
      */
-    func switchToDevice(withID uniqueID: String, completion: @escaping (Error?) -> Void) {
+    func switchToDevice(withType type: AVCaptureDevice.DeviceType, completion: @escaping (Error?) -> Void) {
         queue.async {
             do {
                 let discovery = try self.discoverAvailableDevices()
-                guard let device = discovery.devices.first(where: { $0.uniqueID == uniqueID }) else {
+                guard let device = discovery.devices.first(where: { $0.deviceType == type }) else {
+                    print(discovery.devices)
                     throw CameraError.noDevices
                 }
                 try self.reconfigureSession(with: device)
@@ -163,5 +157,15 @@ final class CameraController {
         }
         session.addInput(newInput)
         session.commitConfiguration()
+    }
+    
+    // TODO: Improve error handling and default camera reset to avoid the error throwing loop/
+    public func resetDefaultCamera(withError error: Error?) -> Void {
+        guard let error = error else { return }
+        self.error = error
+        self.switchToDevice(withType: .builtInDualCamera) { error in
+            fatalError()
+        }
+        
     }
 }
